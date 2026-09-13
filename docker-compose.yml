@@ -1,0 +1,26 @@
+services:
+  tracker-assigner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tracker-assigner:latest
+    container_name: tracker-assigner
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.yaml:/etc/tracker-assigner/config.yaml:ro
+      - assigner-data:/data
+    environment:
+      - TRACKER_TOKEN=${TRACKER_TOKEN:-}
+      - TRACKER_ORG_ID=${TRACKER_ORG_ID:-}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-}
+      - DATABASE_DSN=/data/assigner.db
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  assigner-data:

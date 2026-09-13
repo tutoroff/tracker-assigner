@@ -1,0 +1,53 @@
+# Binaries
+/bin/
+/tracker-assigner
+/tracker-assigner-linux
+*.exe
+*.dll
+*.so
+*.dylib
+
+# SQLite Database files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Production config with secrets
+/config.yaml
+.env
+
+# Test coverage
+coverage
+coverage.out
+cover
+cover.out
+cover_all.out
+
+# Local diagnostic & deployment scripts containing secrets
+deploy_*.py
+patch_*.py
+fix_*.py
+migrate_*.py
+setup_*.py
+check_*.py
+test_*.py
+unban_*.py
+run_*.py
+sync_*.py
+update_*.py
+reupload_*.py
+audit_*.py
+harden_*.py
+explore_*.py
+mock_*.py
+
+# Python cache & artifacts
+__pycache__/
+*.pyc
+*.pyo
+
+# OS files
+.DS_Store
+Thumbs.db

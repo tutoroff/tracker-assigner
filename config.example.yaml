@@ -1,0 +1,128 @@
+# Configuration file for Yandex Tracker Auto-Assigner (Open-Core)
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  # Secret token for authenticating incoming webhooks (header X-Secret-Token)
+  secret_token: "my-webhook-secret-token"
+
+tracker:
+  base_url: "https://api.tracker.yandex.net"
+  # OAuth token for Tracker API (can also be set via TRACKER_TOKEN env var)
+  token: "y0_AgAAAA..."
+  # Organization ID in Yandex 360 or Yandex Cloud
+  org_id: "123456"
+  # Set to true if your organization is in Yandex Cloud Organization (X-Cloud-Org-ID)
+  is_cloud_org: false
+  timeout: 15s
+  # Robot user identity to ignore self-triggered webhooks and prevent loops
+  robot_login: "robot-assigner"
+  robot_uid: "8000000000000001"
+  robot_cloud_uid: "ajefr4bv6e90bheosaqr"
+  workflow:
+    # System transition ID in Tracker workflow (e.g. "start_progress" or "in_progress")
+    assign_transition: "start_progress"
+    transition_map:
+      in_progress: "start_progress"
+    # Statuses upon which the assignee is automatically removed and WIP load is decremented
+    remove_assignee_statuses: ["needInfo", "need_info", "paused", "closed", "resolved"]
+    assign_comment_template: "Задача взята в работу пользователем @{{login}}"
+
+database:
+  # Path to SQLite database file or in-memory
+  dsn: "assigner.db"
+
+# Routing rules: evaluated in sequential order
+# First matching rule determines the target employee group
+routing_rules:
+  # Example: VIP tickets routed to dedicated team
+  - id: "rule-vip"
+    queue: "SUPPORT"
+    tags: ["vip", "escalated"]
+    target_group: "l2_support"
+
+  # Example: Billing & payments issues routed to finance team
+  - id: "rule-billing"
+    queue: "SUPPORT"
+    components: ["billing", "payments"]
+    target_group: "finance_support"
+
+  # Example: Default catch-all for SUPPORT queue
+  - id: "rule-support-default"
+    queue: "SUPPORT"
+    target_group: "l1_support"
+
+# Groups configuration: assignees, load limits, schedules, and balancing strategy
+groups:
+  l1_support:
+    # strategy: round_robin or load_based
+    strategy: "round_robin"
+    # Maximum active tickets per user before queuing
+    max_load_per_user: 5
+    schedule:
+      timezone: "Europe/Moscow"
+      work_days: [1, 2, 3, 4, 5] # 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri
+      work_hours:
+        start: "09:00"
+        end: "18:00"
+    # Active statuses that count towards WIP load limit
+    active_statuses: ["open", "inProgress"]
+    # Statuses ignored when calculating load (e.g. waiting for customer response)
+    ignored_statuses: ["waitingForUser", "needInfo"]
+    assignees:
+      - login: "ivanov"
+        uid: "8000000000000001"
+        cloud_uid: "ajefr4bv6e90bheosaqr"
+        # Absences/vacations - employee will not be assigned tickets during these dates
+        absences:
+          - start: "2026-09-10"
+            end: "2026-09-15"
+            reason: "vacation"
+      - login: "petrov"
+      - login: "sidorov"
+        # Optional override of max load for a specific user
+        max_load: 8
+
+  l2_support:
+    strategy: "load_based"
+    max_load_per_user: 3
+    schedule:
+      timezone: "Europe/Moscow"
+      work_days: [1, 2, 3, 4, 5, 6, 7]
+      work_hours:
+        start: "08:00"
+        end: "20:00"
+    assignees:
+      - login: "alex_lead"
+      - login: "dmitry_expert"
+
+  finance_support:
+    strategy: "load_based"
+    max_load_per_user: 4
+    schedule:
+      timezone: "Europe/Moscow"
+      work_days: [1, 2, 3, 4, 5]
+      work_hours:
+        start: "10:00"
+        end: "19:00"
+    assignees:
+      - login: "elena_fin"
+
+# System Alerts & Observability
+alerts:
+  telegram:
+    enabled: false
+    bot_token: "" # Or env var TELEGRAM_BOT_TOKEN
+    chat_id: ""   # Or env var TELEGRAM_CHAT_ID
+  # SLA threshold: alert if a ticket sits in pending queue longer than this duration
+  pending_sla_timeout: 2h
+
+# Telegram Notifications on Assignment
+notifications:
+  telegram:
+    enabled: true
+    bot_token: ""
+    rules:
+      - default: true
+        chat_id: "-1001234567890"
+
